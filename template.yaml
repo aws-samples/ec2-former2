@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: EC2 instance with local instance of former2 ( https://aws.amazon.com/blogs/opensource/accelerate-infrastructure-as-code-development-with-open-source-former2/ )
+Description: EC2 web server instance running former2 ( https://aws.amazon.com/blogs/opensource/accelerate-infrastructure-as-code-development-with-open-source-former2/ )
 
 Metadata:
   License:
