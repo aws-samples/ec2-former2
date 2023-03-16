@@ -336,9 +336,6 @@ Resources:
             SOFTWARE.
             EoF
 
-
-
-
             cd /root/
             # https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html            
             yum remove awscli -y
