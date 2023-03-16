@@ -1,8 +1,8 @@
 ## ec2-former2
 
-[Former2](https://former2.com/) is a website that allows you to generate IaC (CloudFormation, Terraform, CDK, etc) scripts from _existing_ AWS resources and is mentioned on AWS blog ([Accelerate infrastructure as code development with open source Former2](https://aws.amazon.com/blogs/opensource/accelerate-infrastructure-as-code-development-with-open-source-former2/) and [How DNAnexus used the open source Former2 project to create infrastructure as code templates for their disaster recovery pipeline](https://aws.amazon.com/blogs/opensource/how-dnanexus-used-the-open-source-former2-project-to-create-infrastructure-as-code-templates-for-their-disaster-recovery-pipeline/)).
+[Former2](https://former2.com/) is a website that allows you to generate IaC (CloudFormation, CDK, Terraform, etc) scripts from _existing_ AWS resources and is mentioned on AWS blog ([Accelerate infrastructure as code development with open source Former2](https://aws.amazon.com/blogs/opensource/accelerate-infrastructure-as-code-development-with-open-source-former2/) and [How DNAnexus used the open source Former2 project to create infrastructure as code templates for their disaster recovery pipeline](https://aws.amazon.com/blogs/opensource/how-dnanexus-used-the-open-source-former2-project-to-create-infrastructure-as-code-templates-for-their-disaster-recovery-pipeline/)).
 
-Some users have security concerns around entering their AWS credentials on an external website and prefer a private instance.  However, Former2 requires browser extension that only works with websites that has domain names localhost, former2.com and www.former2.com. 
+Some users have security concerns around entering their AWS credentials on an external website and prefer a private web instance.  However, Former2 requires [browser helper extension](https://github.com/iann0036/former2-helper) that only works with websites that has domain names 127.0.0.1, localhost, former2.com and www.former2.com. 
 
 This CloudFormation template provisions a EC2 instance hosting former2 web codes, so that users can remote in from their browsers to use and download the generated IaC file. 
 
@@ -30,7 +30,7 @@ Remote web access is provided by [NICE DCV](https://aws.amazon.com/hpc/dcv/) ser
 
 
 ## Attribution
-CloudFormation template downloads Former2 web codes from https://github.com/iann0036/former2 which are released under [MIT license](https://github.com/iann0036/former2/blob/master/LICENSE).
+CloudFormation template downloads Former2 web codes from [Ian Mckay](https://github.com/iann0036)'s [GitHub repo](https://github.com/iann0036/former2) which are released under [MIT license](https://github.com/iann0036/former2/blob/master/LICENSE).
 
 
 ## Security
