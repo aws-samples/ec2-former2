@@ -1,0 +1,378 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: EC2 instance with local instance of former2 ( https://aws.amazon.com/blogs/opensource/accelerate-infrastructure-as-code-development-with-open-source-former2/ )
+
+Metadata:
+  License:
+    Description: >
+      Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+      SPDX-License-Identifier: MIT-0
+      
+      Permission is hereby granted, free of charge, to any person obtaining a copy of this
+      software and associated documentation files (the "Software"), to deal in the Software
+      without restriction, including without limitation the rights to use, copy, modify,
+      merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+      permit persons to whom the Software is furnished to do so.
+      
+      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+      INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+      PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+      HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+      OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+      SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+  AWS::CloudFormation::Interface: 
+    ParameterGroups: 
+      -
+        Label:
+          default: EC2 configuration
+        Parameters:
+          - ec2Name
+          - vpcID
+          - subnetID
+          - ingressIPv4 
+      -
+        Label:
+          default: Amazon Linux 2 configuration
+        Parameters:
+          - instanceType    
+          - amazonLinux2amd64
+          
+Parameters:
+  ec2Name:
+    Description: EC2 instance name
+    Type: String
+    Default: Amazon Linux with former2 at http://localhost
+  vpcID:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC with internet connectivity
+    ConstraintDescription: Do specify a valid value
+    AllowedPattern: ".+"
+  subnetID:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subnet with internet connectivity
+    ConstraintDescription: Do specify a valid value
+    AllowedPattern: ".+"
+  ingressIPv4:
+    Type: String
+    Description: Allowed source IP prefix (e.g. 1.2.3.4/32, get your source IP from https://checkip.amazonaws.com )
+    Default: 0.0.0.0/0
+
+  instanceType:
+    Type: String
+    Description: Instance Type ( https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-types.html )
+    Default: t3.medium
+  amazonLinux2amd64:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Description: Amazon Linux 2 (x86_64) AMI
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+
+Resources:
+  securityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow inbound DCV 
+      VpcId: !Ref vpcID
+      SecurityGroupIngress:
+        - Description: NICE DCV (IPv4)
+          IpProtocol: "tcp"
+          FromPort: "8443"
+          ToPort: "8443"
+          CidrIp: !Ref ingressIPv4
+        - Description: NICE DCV QUIC (IPv4)
+          IpProtocol: "udp"
+          FromPort: "8443"
+          ToPort: "8443"
+          CidrIp: !Ref ingressIPv4                       
+      SecurityGroupEgress:
+        - Description: Allow all outbound traffic (IPv4)
+          IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0          
+      Tags:
+        - Key: StackName
+          Value: !Sub ${AWS::StackName}
+        - Key: StackId
+          Value: !Sub ${AWS::StackId}
+        - Key: Name
+          Value: !Sub "[${AWS::StackName}] - ${ec2Name}"
+
+  instanceIamRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ec2.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      Path: /
+      Policies: # https://docs.aws.amazon.com/dcv/latest/adminguide/setting-up-license.html
+      - PolicyName: dcvLicensing
+        PolicyDocument:
+          Version: '2012-10-17'  
+          Statement:
+          - Effect: Allow
+            Action: 
+              - s3:GetObject
+            Resource: !Sub "arn:${AWS::Partition}:s3:::dcv-license.${AWS::Region}/*"
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore'
+      Tags:
+        - Key: StackName
+          Value: !Sub ${AWS::StackName}
+        - Key: StackId
+          Value: !Sub ${AWS::StackId}
+
+  instanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties: 
+      Path: /
+      Roles: 
+      - !Ref instanceIamRole
+
+  ec2Instance:
+    Type: "AWS::EC2::Instance" 
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT90M      
+    Metadata:
+      Comment: Install Update files
+      AWS::CloudFormation::Init:
+        configSets:
+          setup:
+            - 00_setup       
+        00_setup:  # in the following order: packages, groups, users, sources, files, commands, and then services.
+          files:
+            "/home/ec2-user/update-former2": 
+              content: |
+                #!/bin/bash
+                cd /var/www/html
+                sudo git pull
+              mode: "000755"
+              owner: "ec2-user"
+              group: "users"
+            "/home/ec2-user/update-dcv": 
+              content: |
+                #!/bin/bash
+                cd /tmp
+                rm -f /tmp/nice-dcv-el7-x86_64.tgz
+                wget https://d1uj6qtbmh3dt5.cloudfront.net/nice-dcv-el7-x86_64.tgz
+                tar -xvzf nice-dcv-el7-x86_64.tgz && cd nice-dcv-*-el7-x86_64
+                sudo systemctl stop dcvserver
+                sudo yum install -y nice-dcv-server-*.rpm
+                sudo yum install -y nice-dcv-web-viewer-*.rpm
+                sudo yum install -y nice-xdcv-*.rpm
+                sudo systemctl restart dcvserver
+              mode: "000755"
+              owner: "ec2-user"
+              group: "users"
+            "/home/ec2-user/update-awscli": 
+              content: |
+                #!/bin/bash
+                cd /tmp
+                rm -f awscliv2.zip
+                curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o awscliv2.zip
+                unzip -q -o awscliv2.zip
+                sudo ./aws/install --update -b /usr/bin              
+              mode: "000755"
+              owner: "ec2-user"
+              group: "users"              
+    Properties:
+      ImageId: !Ref amazonLinux2amd64
+      InstanceType: !Ref instanceType
+      IamInstanceProfile: !Ref instanceProfile
+      SubnetId: !Ref subnetID
+      Monitoring: true      
+      SecurityGroupIds: 
+        - !Ref securityGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeType: gp3
+            DeleteOnTermination:  true          
+      UserData:
+        Fn::Base64: 
+          !Sub |
+            #!/bin/bash
+            cd /root/
+            
+            # https://docs.aws.amazon.com/systems-manager/latest/userguide/agent-install-al2.html
+            yum install -q -y https://s3.${AWS::Region}.amazonaws.com/amazon-ssm-${AWS::Region}/latest/linux_amd64/amazon-ssm-agent.rpm
+
+            # cfn-init
+            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ec2Instance --region ${AWS::Region} -c setup
+
+            yum install -q -y deltarpm wget tmux unzip tar curl sed
+            # https://docs.aws.amazon.com/dcv/latest/adminguide/setting-up-installing-linux-prereq.html
+            yum install -q -y gdm gnome-session gnome-classic-session gnome-session-xsession
+            yum install -q -y xorg-x11-server-Xorg xorg-x11-fonts-Type1 xorg-x11-drivers 
+            yum install -q -y gnome-terminal gnu-free-fonts-common gnu-free-mono-fonts gnu-free-sans-fonts gnu-free-serif-fonts            
+            yum install -q -y pulseaudio pulseaudio-utils
+
+            # https://docs.aws.amazon.com/dcv/latest/adminguide/setting-up-installing-linux-server.html
+            rpm --import https://d1uj6qtbmh3dt5.cloudfront.net/NICE-GPG-KEY
+
+            # https://docs.aws.amazon.com/dcv/latest/userguide/client-linux.html
+            wget -nv https://d1uj6qtbmh3dt5.cloudfront.net/nice-dcv-el7-x86_64.tgz
+            tar -xvzf nice-dcv-el7-x86_64.tgz && cd nice-dcv-*-el7-x86_64
+            yum install -q -y nice-dcv-server-*.rpm
+            yum install -q -y nice-dcv-web-viewer-*.rpm
+            yum install -q -y nice-xdcv-*.rpm
+
+            # Chromium
+            amazon-linux-extras install -y epel
+            yum install -q -y chromium
+            sed -i 's/start.fedoraproject.org/localhost/g' /etc/chromium/master_preferences
+            sed -i 's/https/http/g' /etc/chromium/master_preferences
+            sed -i 's/http:\/\/tools.google.com\/chrome\/intl\/en\/welcome.html/https:\/\/chrome.google.com\/webstore\/detail\/former2-helper\/fhejmeojlbhfhjndnkkleooeejklmigi/g' /etc/chromium/master_preferences
+
+            cat << EoF > /etc/chromium/policies/recommended/policy.json
+            {
+              "ShowHomeButton": true,
+              "HomepageLocation": "https://aws.amazon.com",
+              "RestoreOnStartup":5,
+              "NewTabPageLocation": "http://localhost"
+            }
+            EoF
+
+            # Microsoft Edge
+            rpm --import https://packages.microsoft.com/keys/microsoft.asc
+            yum-config-manager --add-repo https://packages.microsoft.com/yumrepos/edge/
+            yum install -q -y microsoft-edge-stable
+
+            # https://techcommunity.microsoft.com/t5/discussions/global-profile-configuration-on-linux/m-p/2365884
+            mkdir -p /etc/opt/edge/policies/managed /etc/opt/edge/policies/recommended
+            chmod -w /etc/opt/edge/policies/managed /etc/opt/edge/policies/recommended
+            cp /etc/chromium/policies/recommended/policy.json /etc/opt/edge/policies/recommended
+
+            # VS Code
+            yum-config-manager --add-repo https://packages.microsoft.com/yumrepos/vscode
+            yum install -q -y code
+
+            # Setup former2 
+            yum install -y httpd git
+            cd /var/www/ 
+            git clone https://github.com/iann0036/former2
+            mv html html.bak
+            mv former2 html
+            systemctl enable --now httpd
+
+
+            # https://docs.aws.amazon.com/dcv/latest/adminguide/enable-quic.html
+            cp /etc/dcv/dcv.conf /etc/dcv/dcv.conf.org
+            sed -i '/^\[connectivity/a enable-quic-frontend=true' /etc/dcv/dcv.conf
+        
+            # https://docs.aws.amazon.com/dcv/latest/adminguide/managing-sessions-start.html#managing-sessions-start-manual
+            cat << EoF > /etc/systemd/system/dcv-virtual-session.service
+            [Unit]
+            Description=Create DCV virtual session for user ec2-user
+            After=default.target network.target 
+
+            [Service]
+            ExecStart=/opt/dcv-virtual-session.sh 
+
+            [Install]
+            WantedBy=default.target
+            EoF
+
+            cat << EoF > /opt/dcv-virtual-session.sh
+            #!/bin/bash
+            dcvUser=ec2-user
+            while true;
+            do
+              if (/usr/bin/dcv list-sessions | grep \$dcvUser 1>/dev/null); then
+                sleep 5
+              else
+                /usr/bin/dcv create-session \$dcvUser --owner \$dcvUser --storage-root /home/\$dcvUser
+                /usr/bin/dcv list-sessions
+              fi
+            done
+            EoF
+            chmod +x /opt/dcv-virtual-session.sh
+            chmod og-w /opt/dcv-virtual-session.sh
+
+            cat << EoF > /var/www/THIRD_PARTY_LICENSES
+            ** Former2; version 1.0 -- https://github.com/iann0036/former2
+            MIT License
+            
+            Copyright (c) 2019 Ian Mckay
+            
+            Permission is hereby granted, free of charge, to any person obtaining a copy
+            of this software and associated documentation files (the "Software"), to deal
+            in the Software without restriction, including without limitation the rights
+            to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+            copies of the Software, and to permit persons to whom the Software is
+            furnished to do so, subject to the following conditions:
+
+            The above copyright notice and this permission notice shall be included in all
+            copies or substantial portions of the Software.
+
+            THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+            IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+            FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+            AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+            LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+            OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+            SOFTWARE.
+ 
+            MIT License
+
+            Copyright (c) 2019 Ian Mckay
+
+            Permission is hereby granted, free of charge, to any person obtaining a copy
+            of this software and associated documentation files (the "Software"), to deal
+            in the Software without restriction, including without limitation the rights
+            to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+            copies of the Software, and to permit persons to whom the Software is
+            furnished to do so, subject to the following conditions:
+
+            The above copyright notice and this permission notice shall be included in all
+            copies or substantial portions of the Software.
+
+            THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+            IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+            FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+            AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+            LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+            OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+            SOFTWARE.
+            EoF
+
+
+
+
+            cd /root/
+            # https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html            
+            yum remove awscli -y
+            curl -s https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o awscliv2.zip
+            unzip -q -o awscliv2.zip
+            ./aws/install -b /usr/bin
+            echo "export AWS_CLI_AUTO_PROMPT=on-partial" >> /home/ec2-user/.bashrc
+
+            # yum-cron            
+            yum install -q -y yum-cron
+            sed -i 's/apply_updates = no/apply_updates = yes/g' /etc/yum/yum-cron.conf
+            systemctl enable --now yum-cron
+
+            # text console: DCV virtual sessions only
+            systemctl isolate multi-user.target
+            systemctl set-default multi-user.target
+            systemctl daemon-reload
+            systemctl enable --now dcvserver dcv-virtual-session.service
+
+            # cfn-init completed so signal success or not
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ec2Instance --region ${AWS::Region}
+      Tags:
+        - Key: Name
+          Value: !Ref ec2Name
+        - Key: StackName
+          Value: !Sub ${AWS::StackName}
+        - Key: StackId
+          Value: !Sub ${AWS::StackId}
+        
+Outputs:
+  SSMsessionManager:
+    Description: SSM Session Manager login ("sudo passwd ec2-user" to change password)
+    Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/systems-manager/session-manager/${ec2Instance}"
+
+  RemoteWebConsole:
+    Description: Remote web console (login as ec2-user)
+    Value: !Sub "https://${ec2Instance.PublicIp}:8443"
