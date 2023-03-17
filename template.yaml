@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: EC2 web server instance running former2 ( https://aws.amazon.com/blogs/opensource/accelerate-infrastructure-as-code-development-with-open-source-former2/ )
+Description: EC2 instance with local instance of former2 ( https://aws.amazon.com/blogs/opensource/accelerate-infrastructure-as-code-development-with-open-source-former2/ )
 
 Metadata:
   License:
@@ -217,6 +217,13 @@ Resources:
             yum install -q -y nice-dcv-web-viewer-*.rpm
             yum install -q -y nice-xdcv-*.rpm
 
+            # Firefox
+            amazon-linux-extras install -y firefox
+            cd /usr/lib64/firefox/browser/defaults/preferences/
+            sed -i "s/https:\/\/aws.amazon.com/http:\/\/localhost/g" all-redhat.js
+            sed "/browser.startup.homepage/d" all-redhat.js
+            echo 'pref("browser.startup.homepage", "http://localhost");' >> all-redhat.js
+
             # Chromium
             amazon-linux-extras install -y epel
             yum install -q -y chromium
@@ -254,7 +261,6 @@ Resources:
             mv html html.bak
             mv former2 html
             systemctl enable --now httpd
-
 
             # https://docs.aws.amazon.com/dcv/latest/adminguide/enable-quic.html
             cp /etc/dcv/dcv.conf /etc/dcv/dcv.conf.org
