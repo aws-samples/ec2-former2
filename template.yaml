@@ -28,7 +28,8 @@ Metadata:
           - ec2Name
           - vpcID
           - subnetID
-          - ingressIPv4 
+          - ingressIPv4
+          - ingressIPv6           
       -
         Label:
           default: Amazon Linux 2 configuration
@@ -55,7 +56,11 @@ Parameters:
     Type: String
     Description: Allowed source IP prefix (e.g. 1.2.3.4/32, get your source IP from https://checkip.amazonaws.com )
     Default: 0.0.0.0/0
-
+  ingressIPv6:
+    Type: String
+    Description: Allowed source IPv6 prefix 
+    Default: ::/0
+    
   instanceType:
     Type: String
     Description: Instance Type ( https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-types.html )
@@ -74,14 +79,24 @@ Resources:
       SecurityGroupIngress:
         - Description: NICE DCV (IPv4)
           IpProtocol: "tcp"
-          FromPort: "8443"
-          ToPort: "8443"
+          FromPort: 8443
+          ToPort: 8443
           CidrIp: !Ref ingressIPv4
         - Description: NICE DCV QUIC (IPv4)
           IpProtocol: "udp"
-          FromPort: "8443"
-          ToPort: "8443"
-          CidrIp: !Ref ingressIPv4                       
+          FromPort: 8443
+          ToPort: 8443
+          CidrIp: !Ref ingressIPv4
+        - Description: NICE DCV (IPv6)
+          IpProtocol: "tcp"
+          FromPort: 8443
+          ToPort: 8443
+          CidrIpv6: !Ref ingressIPv6
+        - Description: NICE DCV QUIC (IPv6)
+          IpProtocol: "udp"
+          FromPort: 8443
+          ToPort: 8443
+          CidrIpv6: !Ref ingressIPv6                       
       SecurityGroupEgress:
         - Description: Allow all outbound traffic (IPv4)
           IpProtocol: "-1"
