@@ -111,7 +111,9 @@ Resources:
           Value: !Sub ${AWS::StackId}
         - Key: Name
           Value: !Sub "[${AWS::StackName}] - ${ec2Name}"
-
+        - Key: GitHub
+          Value: https://github.com/aws-samples/ec2-former2
+          
   instanceIamRole:
     Type: AWS::IAM::Role
     Properties: 
@@ -138,7 +140,9 @@ Resources:
           Value: !Sub ${AWS::StackName}
         - Key: StackId
           Value: !Sub ${AWS::StackId}
-
+        - Key: GitHub
+          Value: https://github.com/aws-samples/ec2-former2
+          
   instanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties: 
@@ -239,7 +243,7 @@ Resources:
             amazon-linux-extras install -y firefox
             cd /usr/lib64/firefox/browser/defaults/preferences/
             sed -i "s/https:\/\/aws.amazon.com/http:\/\/localhost/g" all-redhat.js
-            sed "/browser.startup.homepage/d" all-redhat.js
+            sed -i "/browser.startup.homepage/d" all-redhat.js
             echo 'pref("browser.startup.homepage", "http://localhost");' >> all-redhat.js
 
             # Chromium
@@ -388,7 +392,9 @@ Resources:
           Value: !Sub ${AWS::StackName}
         - Key: StackId
           Value: !Sub ${AWS::StackId}
-        
+        - Key: GitHub
+          Value: https://github.com/aws-samples/ec2-former2
+          
 Outputs:
   SSMsessionManager:
     Description: SSM Session Manager login ("sudo passwd ec2-user" to change password)
