@@ -10,7 +10,8 @@ This CloudFormation template provisions a EC2 instance hosting former2 web codes
 
 ## Getting started
 
-Download the [CloudFormation template](template.yaml) and provision it in your AWS console. 
+Download the [CloudFormation template](https://raw.githubusercontent.com/aws-samples/ec2-former2/main/template.yaml) and use it in your AWS [CloudFormation console](https://console.aws.amazon.com/cloudformation/home#/stacks/create/template). The EC2 instance to be provisioned must be in a network with internet connectivity; you can select [default VPC](https://docs.aws.amazon.com/vpc/latest/userguide/default-vpc.html) and one of the [default subnets](https://docs.aws.amazon.com/vpc/latest/userguide/default-vpc.html#default-subnet). 
+
 Once provisioned, go to Outputs section.
 
 ![outputs.png](./images/outputs.png)
@@ -34,6 +35,15 @@ Remote web access is provided by [NICE DCV](https://aws.amazon.com/hpc/dcv/) ser
 ![file transfer](https://docs.aws.amazon.com/images/dcv/latest/userguide/images/web-storage.png)
 
 Native clients can be downloaded from https://download.nice-dcv.com/
+
+## EC2 instance in private subnet
+The CloudFormation template is designed to provision EC2 instance in [public subnet](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Scenario1.html). To provision EC2 in [private subnet](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Scenario2.html) with internet connectivity, edit the .yaml file and either remove or comment out the last 3 lines as shown below
+```
+#  DCVwebConsole:
+#    Description: DCV web console (login as administrator)
+#    Value: !Sub "https://${ec2Instance.PublicIp}:8443"
+```
+
 
 ## Security
 
