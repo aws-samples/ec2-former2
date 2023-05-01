@@ -36,6 +36,9 @@ Metadata:
           - instanceType
           - amazonLinux2amd64
 
+Conditions:
+  useElasticIP: !Equals [!Ref assignStaticIP, "Yes"]
+
 Parameters:
   ec2Name:
     Description: EC2 instance name
