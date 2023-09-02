@@ -37,12 +37,7 @@ Remote web access is provided by [NICE DCV](https://aws.amazon.com/hpc/dcv/) ser
 Native clients can be downloaded from https://download.nice-dcv.com/
 
 ## EC2 instance in private subnet
-The CloudFormation template is designed to provision EC2 instance in [public subnet](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Scenario1.html). To provision EC2 in [private subnet](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Scenario2.html) with internet connectivity, edit the .yaml file and either remove or comment out the last 3 lines as shown below
-```
-#  DCVwebConsole:
-#    Description: DCV web console (login as administrator)
-#    Value: !Sub "https://${ec2Instance.PublicIp}:8443"
-```
+The CloudFormation template is designed to provision EC2 instance in [public subnet](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Scenario1.html). To provision EC2 in [private subnet](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Scenario2.html) with internet connectivity, set `displayPublicIP` option to `No`
 
 
 ## Security
