@@ -10,17 +10,28 @@ This CloudFormation template provisions a EC2 instance hosting former2 web codes
 
 ## Getting started
 
-Download the [CloudFormation template](https://raw.githubusercontent.com/aws-samples/ec2-former2/main/template.yaml) and use it in your AWS [CloudFormation console](https://console.aws.amazon.com/cloudformation/home#/stacks/create/template). The EC2 instance to be provisioned must be in a network with internet connectivity; you can select [default VPC](https://docs.aws.amazon.com/vpc/latest/userguide/default-vpc.html) and one of the [default subnets](https://docs.aws.amazon.com/vpc/latest/userguide/default-vpc.html#default-subnet). 
+###  Provision EC2 with CloudFormation
+Download the [CloudFormation template](AmazonLinux2-former2.yaml). Login to your [CloudFormation console](https://console.aws.amazon.com/cloudformation/home#/stacks/create/template) to [create a stack](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-create-stack.html)
 
-Once provisioned, go to Outputs section.
 
-![outputs.png](./images/outputs.png)
+The EC2 instance is to be provisioned in a network with internet connectivity. You can select [default VPC](https://docs.aws.amazon.com/vpc/latest/userguide/default-vpc.html) and one of the [default subnets](https://docs.aws.amazon.com/vpc/latest/userguide/default-vpc.html#default-subnet). The template assumes EC2 instance in [public subnet](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Scenario1.html). To provision EC2 in [private subnet](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Scenario2.html) with internet connectivity, specify `No` for `displayPublicIP` and `assignStaticIP` Cloudformation parameter values.
 
-Use the `SSMSessionManager` link value to change ec2-user password and `RemoteWebConsole` link value to login to graphical desktop in your browser. Within the session, open a browser to http://localhost to use Former2
 
+### Login to EC2 instance
+Once provisioned, go to **Outputs** section and use the below URL links
+
+- `SSMSessionManager`: provides [shell access](https://aws.amazon.com/blogs/aws/new-session-manager/). From session manager terminal, set your ec2-user password with the command `sudo passwd ec2-user`
+- `DCVwebConsole`: [NICE DCV](https://aws.amazon.com/hpc/dcv/) web browser client. Login as **ec2-user** and your configured password. Launch Firefox browser and install **Former 2 Helper for Mozilla Firefox**
 
 ![ec2.png](./images/ec2.png)
 
+- `GetTokenCommand`: Copy entire string. In your NICE DCV session, open a terminal, and paste the string in to retrieve temporary IAM credentials. Use these values to enter IAM credentials at http://localhost/#section-setup-credentials
+
+
+![ec2.png](./images/credentials.png)
+
+
+### Using Former2
 Refer to [Accelerate infrastructure as code development with open source Former2](https://aws.amazon.com/blogs/opensource/accelerate-infrastructure-as-code-development-with-open-source-former2/) blog post for Former2 usage instructions. 
 
 ## Attribution
@@ -29,15 +40,16 @@ CloudFormation template downloads Former2 web codes from [Ian Mckay](https://git
 ## Updating web codes
 Former2 is under active development. To download latest codes, login to EC2 instance and run `/home/ec2-user/update-former2` script. 
 
-## About remote web console
-Remote web access is provided by [NICE DCV](https://aws.amazon.com/hpc/dcv/) server, and supports [file transfer](https://docs.aws.amazon.com/dcv/latest/userguide/using-transfer-web.html). Usage indicates acceptance of [NICE DCV EULA](https://www.nice-dcv.com/eula.html).
+## About NICE DCV web console
+[NICE DCV](https://aws.amazon.com/hpc/dcv/) supports [file transfer](https://docs.aws.amazon.com/dcv/latest/userguide/using-transfer-web.html). Usage indicates acceptance of [NICE DCV EULA](https://www.nice-dcv.com/eula.html).
 
 ![file transfer](https://docs.aws.amazon.com/images/dcv/latest/userguide/images/web-storage.png)
 
 Native clients can be downloaded from https://download.nice-dcv.com/
 
-## EC2 instance in private subnet
-The CloudFormation template is designed to provision EC2 instance in [public subnet](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Scenario1.html). To provision EC2 in [private subnet](https://docs.aws.amazon.com/vpc/latest/userguide/VPC_Scenario2.html) with internet connectivity, set `displayPublicIP` option to `No`
+
+## Clean Up
+To remove created resources, [delete](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-delete-stack.html) your created CloudFormation stack
 
 
 ## Security
