@@ -113,70 +113,103 @@ Mappings:
   EICprefixMap: # EC2 instance connect: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-connect-prerequisites.html#ec2-instance-connect-setup-security-group
     af-south-1:
       IpPrefix: 13.244.121.196/30
+      Ipv6Prefix: 2406:da11:700:3b00::/56
     ap-east-1:
       IpPrefix: 43.198.192.104/29
+      Ipv6Prefix: 2406:da1e:da1:3c00::/56
     ap-northeast-1:
       IpPrefix: 3.112.23.0/29
+      Ipv6Prefix: 2406:da14:1c18:2100::/56
     ap-northeast-2:
       IpPrefix: 13.209.1.56/29
+      Ipv6Prefix: 2406:da12:1e1:d900::/56
     ap-northeast-3:
       IpPrefix: 15.168.105.160/29
+      Ipv6Prefix: 2406:da16:856:a500::/56
     ap-south-1:
       IpPrefix: 13.233.177.0/29
+      Ipv6Prefix: 2406:da1a:74a:4b00::/56
     ap-south-2:
       IpPrefix: 18.60.252.248/29
+      Ipv6Prefix: 2406:da1b:d1d:8800::/56
     ap-southeast-1:
       IpPrefix: 3.0.5.32/29
+      Ipv6Prefix: 2406:da18:752:6600::/56
     ap-southeast-2:
       IpPrefix: 13.239.158.0/29
+      Ipv6Prefix: 2406:da1c:90e:4a00::/56
     ap-southeast-3:
       IpPrefix: 43.218.193.64/29
+      Ipv6Prefix: 2406:da19:14b:8c00::/56
     ap-southeast-4:
       IpPrefix: 16.50.248.80/29
+      Ipv6Prefix: 2406:da1f:b4f:4600::/56
     ca-central-1:
       IpPrefix: 35.183.92.176/29
+      Ipv6Prefix: 2600:1f11:ae3:700::/56
     ca-west-1:
       IpPrefix: 40.176.213.168/29
+      Ipv6Prefix: 2600:1f1a:4ff6:d500::/56
     cn-north-1:
       IpPrefix: 43.196.20.40/29
+      Ipv6Prefix: 2400:7fc0:86fd:e00::/56
     cn-northwest-1:
       IpPrefix: 43.192.155.8/29
+      Ipv6Prefix: 2404:c2c0:87aa:4800::/56
     eu-central-1:
       IpPrefix: 3.120.181.40/29
+      Ipv6Prefix: 2a05:d014:17a8:8b00::/56
     eu-central-2:
       IpPrefix: 16.63.77.8/29
+      Ipv6Prefix: 2a05:d019:1d6:2100::/56
     eu-north-1:
       IpPrefix: 13.48.4.200/30
+      Ipv6Prefix: 2a05:d016:494:f00::/56
     eu-south-1:
       IpPrefix: 15.161.135.164/30
+      Ipv6Prefix: 2a05:d01a:c03:4a00::/56
     eu-south-2:
       IpPrefix: 18.101.90.48/29
+      Ipv6Prefix: 2a05:d011:cbe:f700::/56
     eu-west-1:
       IpPrefix: 18.202.216.48/29
+      Ipv6Prefix: 2a05:d018:403:4e00::/56
     eu-west-2:
       IpPrefix: 3.8.37.24/29
+      Ipv6Prefix: 2a05:d01c:4ac:3100::/56
     eu-west-3:
       IpPrefix: 35.180.112.80/29
+      Ipv6Prefix: 2a05:d012:c9e:d600::/56
     il-central-1:
       IpPrefix: 51.16.183.224/29
+      Ipv6Prefix: 2a05:d025:451:7d00::/56
     me-central-1:
       IpPrefix: 3.29.147.40/29
+      Ipv6Prefix: 2406:da17:1db:b00::/56
     me-south-1:
       IpPrefix: 16.24.46.56/29
+      Ipv6Prefix: 2a05:d01e:27f:ac00::/56
     sa-east-1:
       IpPrefix: 18.228.70.32/29
+      Ipv6Prefix: 2600:1f1e:d1d:e700::/56
     us-east-1:
       IpPrefix: 18.206.107.24/29
+      Ipv6Prefix: 2600:1f18:6fe3:8c00::/56
     us-east-2:
       IpPrefix: 3.16.146.0/29
+      Ipv6Prefix: 2600:1f16:138f:cf00::/56
     us-gov-east-1:
       IpPrefix: 18.252.4.0/30
+      Ipv6Prefix: 2600:1f15:d63:bd00::/56
     us-gov-west-1:
       IpPrefix: 15.200.28.80/30
+      Ipv6Prefix: 2600:1f12:fa9:5100::/56
     us-west-1:
       IpPrefix: 13.52.6.112/29
+      Ipv6Prefix: 2600:1f1c:12d:e900::/56
     us-west-2:
       IpPrefix: 18.237.140.160/29
+      Ipv6Prefix: 2600:1f13:a0d:a700::/56
 
 Conditions:
   useARM64: !Equals [!Ref processorArchitecture, "Amazon Linux 2 (arm64)"]
@@ -205,58 +238,66 @@ Resources:
       SecurityGroupIngress:
         - !If
           - createEICsg
-          - Description: SSH (EC2 Instance Connect IP)
+          - Description: SSH (EC2 Instance Connect IPv4)
             IpProtocol: tcp
             FromPort: 22
             ToPort: 22
             CidrIp: !FindInMap [EICprefixMap, !Ref AWS::Region, IpPrefix]
           - !Ref AWS::NoValue
+        - !If
+          - createEICsg
+          - Description: SSH (EC2 Instance Connect IPv6)
+            IpProtocol: tcp
+            FromPort: 22
+            ToPort: 22
+            CidrIpv6: !FindInMap [EICprefixMap, !Ref AWS::Region, Ipv6Prefix]
+          - !Ref AWS::NoValue
         - Description: NICE DCV (IPv4)
-          IpProtocol: "tcp"
+          IpProtocol: tcp
           FromPort: 8443
           ToPort: 8443
           CidrIp: !Ref ingressIPv4
         - Description: NICE DCV QUIC (IPv4)
-          IpProtocol: "udp"
+          IpProtocol: udp
           FromPort: 8443
           ToPort: 8443
           CidrIp: !Ref ingressIPv4
         - Description: NICE DCV (IPv6)
-          IpProtocol: "tcp"
+          IpProtocol: tcp
           FromPort: 8443
           ToPort: 8443
           CidrIpv6: !Ref ingressIPv6
         - Description: NICE DCV QUIC (IPv6)
-          IpProtocol: "udp"
+          IpProtocol: udp
           FromPort: 8443
           ToPort: 8443
           CidrIpv6: !Ref ingressIPv6
       SecurityGroupEgress:
         - Description: Allow HTTP out (IPv4)
-          IpProtocol: "tcp"
+          IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
         - Description: Allow HTTP out (IPv6)
-          IpProtocol: "tcp"
+          IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           CidrIpv6: ::/0
         - Description: Allow HTTPS out (IPv4)
-          IpProtocol: "tcp"
+          IpProtocol: tcp
           FromPort: 443
           ToPort: 443
           CidrIp: 0.0.0.0/0
         - Description: Allow HTTPS out (IPv6)
-          IpProtocol: "tcp"
+          IpProtocol: tcp
           FromPort: 443
           ToPort: 443
           CidrIpv6: ::/0
       Tags:
         - Key: StackName
-          Value: !Sub ${AWS::StackName}
+          Value: !Ref AWS::StackName
         - Key: StackId
-          Value: !Sub ${AWS::StackId}
+          Value: !Ref AWS::StackId
         - Key: Name
           Value: !Sub
             - "${AWS::StackName}-securityGroup-${UID}"
@@ -286,15 +327,25 @@ Resources:
               - Effect: Allow
                 Action:
                   - s3:GetObject
-                Resource: !Sub "arn:${AWS::Partition}:s3:::dcv-license.${AWS::Region}/*"
+                Resource: !Sub "arn:*:s3:::dcv-license.${AWS::Region}/*"
+        - PolicyName: DenyIfNotIP
+          PolicyDocument: # https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_examples_aws_deny-ip.html
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Deny
+                Action: "*"
+                Resource: "*"
+                Condition:
+                  NotIpAddress:
+                    aws:SourceIp: 0.0.0.0/0
       ManagedPolicyArns:
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore"
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/ReadOnlyAccess"
       Tags:
         - Key: StackName
-          Value: !Sub ${AWS::StackName}
+          Value: !Ref AWS::StackName
         - Key: StackId
-          Value: !Sub ${AWS::StackId}
+          Value: !Ref AWS::StackId
         - Key: GitHub
           Value: https://github.com/aws-samples/ec2-former2
 
@@ -392,15 +443,9 @@ Resources:
               content: |
                 #!/bin/bash
                 cd /tmp
-                if (arch | grep -q x86); then
-                  rm -f nice-dcv-el7-x86_64.tgz
-                  wget https://d1uj6qtbmh3dt5.cloudfront.net/nice-dcv-el7-x86_64.tgz
-                  tar -xvzf nice-dcv-el7-x86_64.tgz && cd nice-dcv-*-el7-x86_64
-                else
-                  rm -f nice-dcv-el7-aarch64.tgz
-                  wget https://d1uj6qtbmh3dt5.cloudfront.net/nice-dcv-el7-aarch64.tgz
-                  tar -xvzf nice-dcv-el7-aarch64.tgz && cd nice-dcv-*-el7-aarch64
-                fi
+                sudo rm -f nice-dcv-el7-$(arch).tgz
+                wget https://d1uj6qtbmh3dt5.cloudfront.net/nice-dcv-el7-$(arch).tgz
+                tar -xvzf nice-dcv-el7-$(arch).tgz && cd nice-dcv-*-el7-$(arch)
                 sudo yum install -y ./nice-dcv-server-*.rpm
                 sudo yum install -y ./nice-dcv-web-viewer-*.rpm
                 sudo yum install -y ./nice-xdcv-*.rpm
@@ -413,11 +458,7 @@ Resources:
                 #!/bin/bash
                 cd /tmp
                 sudo rm -f /tmp/awscliv2.zip
-                if (arch | grep -q x86); then
-                  curl https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o awscliv2.zip
-                else
-                  curl https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip -o awscliv2.zip
-                fi
+                wget https://awscli.amazonaws.com/awscli-exe-linux-$(arch).zip -o awscliv2.zip
                 unzip -q -o awscliv2.zip
                 /usr/bin/aws --version
                 sudo ./aws/install --update -b /usr/bin
@@ -501,6 +542,10 @@ Resources:
           files:
             "/root/install-dcv.sh":
               content: |
+                #!/bin/bash
+                mkdir -p /tmp/cfn
+                cd /tmp/cfn
+
                 # NICE DCV prereq: https://docs.aws.amazon.com/dcv/latest/adminguide/setting-up-installing-linux-prereq.html
                 yum install -q -y gdm gnome-session gnome-classic-session gnome-session-xsession
                 yum install -q -y xorg-x11-server-Xorg xorg-x11-fonts-Type1 xorg-x11-drivers 
@@ -515,13 +560,8 @@ Resources:
 
                 # NICE DCV: https://docs.aws.amazon.com/dcv/latest/adminguide/setting-up-installing-linux-server.html
                 rpm --import https://d1uj6qtbmh3dt5.cloudfront.net/NICE-GPG-KEY
-                if (arch | grep -q x86); then
-                  curl -s -L -O https://d1uj6qtbmh3dt5.cloudfront.net/nice-dcv-el7-x86_64.tgz
-                  tar -xvzf nice-dcv-el7-x86_64.tgz && cd nice-dcv-*-el7-x86_64
-                else
-                  curl -s -L -O https://d1uj6qtbmh3dt5.cloudfront.net/nice-dcv-el7-aarch64.tgz
-                  tar -xvzf nice-dcv-el7-aarch64.tgz && cd nice-dcv-*-el7-aarch64
-                fi
+                curl -s -L -O https://d1uj6qtbmh3dt5.cloudfront.net/nice-dcv-el7-$(arch).tgz
+                tar -xvzf nice-dcv-el7-$(arch).tgz && cd nice-dcv-*-el7-$(arch)
                 yum install -q -y ./nice-dcv-server-*.rpm
                 yum install -q -y ./nice-dcv-web-viewer-*.rpm
                 yum install -q -y ./nice-xdcv-*.rpm
@@ -542,7 +582,7 @@ Resources:
                 # Higher web client max resolution: https://docs.aws.amazon.com/dcv/latest/adminguide/config-param-ref.html
                 sed -i "/^\[display/a web-client-max-head-resolution=(4096, 2160)" /etc/dcv/dcv.conf
                 # Console session support
-                sed -i "/^\[session-management\/automatic-console-session/a owner=\"ec2-user\"\nstorage-root=\"\/home\/ec2-user\"" /etc/dcv/dcv.conf
+                sed -i "/^\[session-management\/automatic-console-session/a owner=\"ec2-user\"\nstorage-root=\"%home%\"" /etc/dcv/dcv.conf
 
                 # USB driver DKMS
                 yum install -q -y dkms
@@ -565,11 +605,7 @@ Resources:
                 fi
 
                 # AWS CLI v2: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
-                if (arch | grep -q x86); then
-                  curl -s https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o awscliv2.zip
-                else
-                  curl -s https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip -o awscliv2.zip
-                fi
+                curl -s https://awscli.amazonaws.com/awscli-exe-linux-$(arch).zip -o awscliv2.zip
                 unzip -q -o awscliv2.zip
                 ./aws/install -b /usr/bin
                 echo "export AWS_CLI_AUTO_PROMPT=on-partial" >> /home/ec2-user/.bashrc
@@ -634,8 +670,6 @@ Resources:
           find /var/www/html -type d -exec sudo chmod 2775 {} \;
           find /var/www/html -type f -exec sudo chmod 0664 {} \;
 
-          cd /tmp/cfn
-
           # Update OS
           yum update -q -y
 
@@ -658,9 +692,9 @@ Resources:
         - Key: Name
           Value: !Ref ec2Name
         - Key: StackName
-          Value: !Sub ${AWS::StackName}
+          Value: !Ref AWS::StackName
         - Key: StackId
-          Value: !Sub ${AWS::StackId}
+          Value: !Ref AWS::StackId
         - Key: GitHub
           Value: https://github.com/aws-samples/ec2-former2
 
@@ -672,9 +706,9 @@ Resources:
       InstanceId: !Ref ec2Instance
       Tags:
         - Key: StackName
-          Value: !Sub ${AWS::StackName}
+          Value: !Ref AWS::StackName
         - Key: StackId
-          Value: !Sub ${AWS::StackId}
+          Value: !Ref AWS::StackId
         - Key: Name
           Value: !Sub
             - "${AWS::StackName}-elasticIP-${UID}"
@@ -708,6 +742,15 @@ Outputs:
         !Sub "https://${ec2Instance.PublicIp}:8443",
         !Sub "https://${ec2Instance.PrivateIp}:8443",
       ]
+
+  EC2ipAddress:
+    Condition: displayPublicIP
+    Description: EC2 IP
+    Value: !Sub "${ec2Instance.PublicIp}/32"
+
+  EC2iamRole:
+    Description: Associated IAM role
+    Value: !Sub "https://us-east-1.console.aws.amazon.com/iam/home#/roles/details/${instanceIamRole}"
 
   GetTokenCommand:
     Description: Command to retrieve IAM credentials for http://localhost/#section-setup-credentials
