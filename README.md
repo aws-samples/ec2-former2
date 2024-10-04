@@ -41,11 +41,11 @@ Continue **Next** with [Configure stack options](https://docs.aws.amazon.com/AWS
 Once provisioned, go to **Outputs** section and use the **Values** associated with the following **Keys**
 
 - `SSMSessionManager`: provides [shell access](https://aws.amazon.com/blogs/aws/new-session-manager/). From session manager terminal, set your ec2-user password with the command `sudo passwd ec2-user`
-- `DCVwebConsole`: [NICE DCV](https://aws.amazon.com/hpc/dcv/) web browser client. Login as **ec2-user** and your configured password. Launch Firefox browser and install **Former 2 Helper for Mozilla Firefox**
+- `DCVwebConsole`: [DCV](https://aws.amazon.com/hpc/dcv/) web browser client. Login as **ec2-user** and your configured password. Launch Firefox browser and install **Former 2 Helper for Mozilla Firefox**
 
 ![ec2.png](./images/ec2.png)
 
-- `GetTokenCommand`: Copy entire string. In your NICE DCV session, open a terminal, and paste copied value in to retrieve temporary security credentials*. Use these values to enter IAM credentials at http://localhost/#section-setup-credentials
+- `GetTokenCommand`: Copy entire string. In your DCV session, open a terminal, and paste copied value in to retrieve temporary security credentials*. Use these values to enter IAM credentials at http://localhost/#section-setup-credentials
 
 ![ec2.png](./images/credentials.png)
 
@@ -62,8 +62,8 @@ CloudFormation template downloads Former2 web codes from [Ian Mckay](https://git
 ## Updating web codes
 Former2 is under active development. To download latest codes, login to EC2 instance and run `/home/ec2-user/update-former2` script. 
 
-## About NICE DCV web console
-[NICE DCV](https://aws.amazon.com/hpc/dcv/) supports [file transfer](https://docs.aws.amazon.com/dcv/latest/userguide/using-transfer-web.html). Usage indicates acceptance of [NICE DCV EULA](https://www.nice-dcv.com/eula.html).
+## About DCV web console
+[DCV](https://aws.amazon.com/hpc/dcv/) supports [file transfer](https://docs.aws.amazon.com/dcv/latest/userguide/using-transfer-web.html). Usage indicates acceptance of [DCV EULA](https://www.nice-dcv.com/eula.html).
 
 ![file transfer](https://docs.aws.amazon.com/images/dcv/latest/userguide/images/web-storage.png)
 
