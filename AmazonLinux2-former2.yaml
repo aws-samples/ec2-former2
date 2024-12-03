@@ -293,6 +293,12 @@ Resources:
           FromPort: 443
           ToPort: 443
           CidrIpv6: ::/0
+        - Description: Allow all outbound traffic (IPv4)
+          IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+        - Description: Allow all outbound traffic (IPv6)
+          IpProtocol: "-1"
+          CidrIpv6: ::/0
       Tags:
         - Key: StackName
           Value: !Ref AWS::StackName
