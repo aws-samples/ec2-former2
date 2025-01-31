@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: EC2 instance with local instance of former2 ( https://aws.amazon.com/blogs/opensource/accelerate-infrastructure-as-code-development-with-open-source-former2/ )
+Description: EC2 instance with Former2 (https://github.com/aws-samples/ec2-former2) (uksb-1nfhpgkj2i) (tag:AL2)
 Transform: "AWS::LanguageExtensions"
 
 Metadata:
@@ -41,7 +41,7 @@ Metadata:
           - ingressIPv4
           - ingressIPv6
       - Label:
-          default: EBS
+          default: EBS volume
         Parameters:
           - volumeSize
           - volumeType
@@ -65,49 +65,55 @@ Parameters:
 
   vpcID:
     Type: AWS::EC2::VPC::Id
-    Description: VPC with internet connectivity
-    AllowedPattern: ".+"
+    Description: "VPC with internet connectivity ( https://console.aws.amazon.com/vpcconsole/home#vpcs: )"
+    AllowedPattern: .+
+    ConstraintDescription: Select a VPC
   subnetID:
     Type: AWS::EC2::Subnet::Id
-    Description: Subnet with internet connectivity
-    AllowedPattern: ".+"
-  assignStaticIP:
+    Description: "Subnet with internet connectivity ( https://console.aws.amazon.com/vpcconsole/home#subnets: )"
+    AllowedPattern: .+
+    ConstraintDescription: Select a Subnet
+  displayPublicIP:
     Type: String
-    Description: Assign static IPv4 address ( https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html )
+    Description: Display EC2 public IP in CloudFormation Outputs (select No if EC2 has no public IP)
     AllowedValues:
       - "Yes"
       - "No"
     Default: "Yes"
-  displayPublicIP:
+  assignStaticIP:
     Type: String
-    Description: EC2 in public subnet with public IP assigned?
+    Description: Associate static public IPv4 address ( https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/elastic-ip-addresses-eip.html )
     AllowedValues:
       - "Yes"
       - "No"
     Default: "Yes"
 
+  ingressIPv4:
+    Type: String
+    Description: Allowed source prefix (IPv4) ( e.g. 1.2.3.4/32, get your source IP from https://checkip.amazonaws.com )
+    AllowedPattern: "^\\d+\\.\\d+\\.\\d+\\.\\d+\\/\\d+$"
+    ConstraintDescription: Specify valid IPv4 prefix
+    Default: 0.0.0.0/0
+  ingressIPv6:
+    Type: String
+    Description: Allowed source prefix (IPv6) ( https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-instance-addressing.html#ipv6-addressing )
+    AllowedPattern: .+
+    ConstraintDescription: Specify valid IPv6 prefix
+    Default: ::/0
+
   volumeSize:
     Type: Number
-    Description: Volume size (GiB)
+    Description: Volume size in GiB
     MinValue: 10
     MaxValue: 16384
     Default: 10
   volumeType:
     Type: String
-    Description: Volueme type ( https://aws.amazon.com/ebs/general-purpose/ )
+    Description: EBS volume type
     AllowedValues:
-      - "gp3"
-      - "gp2"
-    Default: "gp3"
-
-  ingressIPv4:
-    Type: String
-    Description: Allowed source IP prefix (e.g. 1.2.3.4/32, get your source IP from https://checkip.amazonaws.com )
-    Default: 0.0.0.0/0
-  ingressIPv6:
-    Type: String
-    Description: Allowed source IPv6 prefix
-    Default: ::/0
+      - gp3
+      - gp2
+    Default: gp3
 
 Mappings:
   EICprefixMap: # EC2 instance connect: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-connect-prerequisites.html#ec2-instance-connect-setup-security-group
@@ -230,6 +236,53 @@ Conditions:
   createEICsg: !And [!Condition hasEIC, !Condition displayPublicIP]
 
 Resources:
+  instanceIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ec2.amazonaws.com]
+            Action: [sts:AssumeRole]
+      Path: /
+      Policies:
+        - PolicyName: dcvLicensing
+          PolicyDocument: # https://docs.aws.amazon.com/dcv/latest/adminguide/setting-up-license.html
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource: !Sub arn:aws:s3:::dcv-license.${AWS::Region}/*
+        - PolicyName: DenyIfNotIP
+          PolicyDocument: # https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_examples_aws_deny-ip.html
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Deny
+                Action: "*"
+                Resource: "*"
+                Condition:
+                  NotIpAddress:
+                    aws:SourceIp: 0.0.0.0/0
+      ManagedPolicyArns:
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore"
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/ReadOnlyAccess"
+      Tags:
+        - Key: StackName
+          Value: !Ref AWS::StackName
+        - Key: StackId
+          Value: !Ref AWS::StackId
+        - Key: GitHub
+          Value: https://github.com/aws-samples/ec2-former2
+
+  instanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - !Ref instanceIamRole
+
   securityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -273,26 +326,6 @@ Resources:
           ToPort: 8443
           CidrIpv6: !Ref ingressIPv6
       SecurityGroupEgress:
-        - Description: Allow HTTP out (IPv4)
-          IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          CidrIp: 0.0.0.0/0
-        - Description: Allow HTTP out (IPv6)
-          IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          CidrIpv6: ::/0
-        - Description: Allow HTTPS out (IPv4)
-          IpProtocol: tcp
-          FromPort: 443
-          ToPort: 443
-          CidrIp: 0.0.0.0/0
-        - Description: Allow HTTPS out (IPv6)
-          IpProtocol: tcp
-          FromPort: 443
-          ToPort: 443
-          CidrIpv6: ::/0
         - Description: Allow all outbound traffic (IPv4)
           IpProtocol: "-1"
           CidrIp: 0.0.0.0/0
@@ -315,55 +348,8 @@ Resources:
         - Key: GitHub
           Value: https://github.com/aws-samples/ec2-former2
 
-  instanceIamRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: [ec2.amazonaws.com]
-            Action: ["sts:AssumeRole"]
-      Path: /
-      Policies: # https://docs.aws.amazon.com/dcv/latest/adminguide/setting-up-license.html
-        - PolicyName: dcvLicensing
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - s3:GetObject
-                Resource: !Sub "arn:*:s3:::dcv-license.${AWS::Region}/*"
-        - PolicyName: DenyIfNotIP
-          PolicyDocument: # https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_examples_aws_deny-ip.html
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Deny
-                Action: "*"
-                Resource: "*"
-                Condition:
-                  NotIpAddress:
-                    aws:SourceIp: 0.0.0.0/0
-      ManagedPolicyArns:
-        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore"
-        - !Sub "arn:${AWS::Partition}:iam::aws:policy/ReadOnlyAccess"
-      Tags:
-        - Key: StackName
-          Value: !Ref AWS::StackName
-        - Key: StackId
-          Value: !Ref AWS::StackId
-        - Key: GitHub
-          Value: https://github.com/aws-samples/ec2-former2
-
-  instanceProfile:
-    Type: AWS::IAM::InstanceProfile
-    Properties:
-      Path: /
-      Roles:
-        - !Ref instanceIamRole
-
   ec2Instance:
-    Type: "AWS::EC2::Instance"
+    Type: AWS::EC2::Instance
     CreationPolicy:
       ResourceSignal:
         Timeout: PT90M
@@ -449,22 +435,22 @@ Resources:
               content: |
                 #!/bin/bash
                 cd /tmp
-                sudo rm -f nice-dcv-el7-$(arch).tgz
-                wget https://d1uj6qtbmh3dt5.cloudfront.net/nice-dcv-el7-$(arch).tgz
-                tar -xvzf nice-dcv-el7-$(arch).tgz && cd nice-dcv-*-el7-$(arch)
+                sudo rm -f /tmp/nice-dcv-amzn2-$(arch).tgz
+                wget https://d1uj6qtbmh3dt5.cloudfront.net/nice-dcv-amzn2-$(arch).tgz
+                tar -xvzf nice-dcv-amzn2-$(arch).tgz && cd nice-dcv-*-amzn2-$(arch)
                 sudo yum install -y ./nice-dcv-server-*.rpm
                 sudo yum install -y ./nice-dcv-web-viewer-*.rpm
                 sudo yum install -y ./nice-xdcv-*.rpm
                 sudo systemctl daemon-reload
               mode: "000755"
               owner: "ec2-user"
-              group: "users"
+              group: "ec2-user"
             "/home/ec2-user/update-awscli":
               content: |
                 #!/bin/bash
                 cd /tmp
                 sudo rm -f /tmp/awscliv2.zip
-                wget https://awscli.amazonaws.com/awscli-exe-linux-$(arch).zip -o awscliv2.zip
+                curl https://awscli.amazonaws.com/awscli-exe-linux-$(arch).zip -o awscliv2.zip
                 unzip -q -o awscliv2.zip
                 /usr/bin/aws --version
                 sudo ./aws/install --update -b /usr/bin
@@ -500,7 +486,7 @@ Resources:
                           /usr/bin/dcv create-session $dcvUser --owner root --storage-root /root
                           ;;
                         *)
-                          /usr/bin/dcv create-session $dcvUser --owner $dcvUser --storage-root /home/$dcvUser
+                          /usr/bin/dcv create-session $dcvUser --owner $dcvUser --user $dcvUser --storage-root /home/$dcvUser
                           ;;
                       esac
                     fi
@@ -518,7 +504,7 @@ Resources:
                 After=default.target network.target
 
                 [Service]
-                ExecStart=/opt/dcv-post-reboot.sh
+                ExecStart=/bin/sh -c "/opt/dcv-post-reboot.sh 2>&1 | tee -a /var/log/install-sw.log"
 
                 [Install]
                 WantedBy=default.target
@@ -550,10 +536,13 @@ Resources:
         00_dcv_install:
           files:
             "/root/install-dcv.sh":
-              content: |
+              content: !Sub |
                 #!/bin/bash
                 mkdir -p /tmp/cfn
                 cd /tmp/cfn
+
+                # Update OS
+                yum update -q -y
 
                 # DCV prereq: https://docs.aws.amazon.com/dcv/latest/adminguide/setting-up-installing-linux-prereq.html
                 yum install -q -y gdm gnome-session gnome-classic-session gnome-session-xsession
@@ -569,8 +558,8 @@ Resources:
 
                 # DCV: https://docs.aws.amazon.com/dcv/latest/adminguide/setting-up-installing-linux-server.html
                 rpm --import https://d1uj6qtbmh3dt5.cloudfront.net/NICE-GPG-KEY
-                curl -s -L -O https://d1uj6qtbmh3dt5.cloudfront.net/nice-dcv-el7-$(arch).tgz
-                tar -xvzf nice-dcv-el7-$(arch).tgz && cd nice-dcv-*-el7-$(arch)
+                curl -s -L -O https://d1uj6qtbmh3dt5.cloudfront.net/nice-dcv-amzn2-$(arch).tgz
+                tar -xvzf nice-dcv-amzn2-$(arch).tgz && cd nice-dcv-*-amzn2-$(arch)
                 yum install -q -y ./nice-dcv-server-*.rpm
                 yum install -q -y ./nice-dcv-web-viewer-*.rpm
                 yum install -q -y ./nice-xdcv-*.rpm
@@ -623,7 +612,7 @@ Resources:
               group: "root"
           commands:
             install:
-              command: "/root/install-dcv.sh > /var/log/install-dcv.log"
+              command: "/root/install-dcv.sh > /var/log/install-dcv.log 2>&1"
               ignoreErrors: "true"
     Properties:
       ImageId:
@@ -662,13 +651,11 @@ Resources:
 
           export CFN_INIT="/opt/aws/bin/cfn-init"
 
-          # cfn-init
           $CFN_INIT -v --stack ${AWS::StackName} --resource ec2Instance --region ${AWS::Region} -c setup
 
-          # DCV
           $CFN_INIT -v --stack ${AWS::StackName} --resource ec2Instance --region ${AWS::Region} -c dcv_install
 
-          # Setup former2 
+          # Setup Former2 
           yum install -q -y httpd git
           cd /var/www/
           git clone https://github.com/iann0036/former2
@@ -716,6 +703,7 @@ Resources:
     Type: AWS::EC2::EIP
     Properties:
       Domain: vpc
+      NetworkBorderGroup: !Ref AWS::Region
       InstanceId: !Ref ec2Instance
       Tags:
         - Key: StackName
@@ -735,7 +723,7 @@ Resources:
 
 Outputs:
   EC2Instance:
-    Description: EC2 instance console
+    Description: EC2 console
     Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/ec2/home?region=${AWS::Region}#Instances:search=${ec2Instance}"
 
   EC2instanceConnect:
@@ -744,11 +732,11 @@ Outputs:
     Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/ec2-instance-connect/ssh?connType=standard&instanceId=${ec2Instance}&osUser=ec2-user&sshPort=22#/"
 
   SSMsessionManager:
-    Description: SSM Session Manager login ("sudo passwd ec2-user" to change password)
+    Description: SSM Session Manager ("sudo passwd ec2-user" to change password)
     Value: !Sub "https://${AWS::Region}.console.aws.amazon.com/systems-manager/session-manager/${ec2Instance}"
 
   DCVwebConsole:
-    Description: DCV browser client (login as ec2-user)
+    Description: DCV web browser client (login as ec2-user)
     Value:
       !If [
         displayPublicIP,

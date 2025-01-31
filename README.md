@@ -38,16 +38,29 @@ EBS
 
 Continue **Next** with [Configure stack options](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-add-tags.html), [Review Stack](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-using-console-create-stack-review.html), and click **Submit** to launch your stack. After your stack has been successfully created, its status changes to **CREATE_COMPLETE**.
 
+## Using
 
-### Login to EC2 instance
-Once provisioned, go to **Outputs** section and use the **Values** associated with the following **Keys**
+Once provisioned, go to CloudFormation stack **Outputs** section and use the **Values** associated with the following **Keys**
 
-- `SSMSessionManager`: provides [shell access](https://aws.amazon.com/blogs/aws/new-session-manager/). From session manager terminal, set your ec2-user password with the command `sudo passwd ec2-user`
-- `DCVwebConsole`: [DCV](https://aws.amazon.com/hpc/dcv/) web browser client. Login as **ec2-user** and your configured password. Launch Firefox browser and install **Former 2 Helper for Mozilla Firefox**
+### Set login password
+- `SSMSessionManager`: open URL in a new browser tab for [shell access](https://aws.amazon.com/blogs/aws/new-session-manager/). 
+
+   *From session manager terminal, set your ec2-user password with the command `sudo passwd ec2-user`*
+
+### Connect
+- `DCVwebConsole`: open URL in a new browser tab, and [connect](https://docs.aws.amazon.com/dcv/latest/userguide/using-connecting-browser-connect.html) to your EC2 instance
+  
+  *Login as **ec2-user** and your configured password*
+
+   Launch `Firefox`, and install [Former 2 Helper for Mozilla Firefox](https://addons.mozilla.org/en-US/firefox/addon/former2-helper/)
 
 ![ec2.png](./images/ec2.png)
 
-- `GetTokenCommand`: Copy entire string. In your DCV session, open a terminal, and paste copied value in to retrieve temporary security credentials*. Use these values to enter IAM credentials at http://localhost/#section-setup-credentials
+
+### Credentials
+- `GetTokenCommand`: Copy entire string. In your DCV session, launch `Terminal`, and paste copied value in to retrieve temporary security credentials.
+
+   *Use these values to enter IAM credentials at http://localhost/#section-setup-credentials*
 
 ![ec2.png](./images/credentials.png)
 
@@ -61,11 +74,12 @@ CloudFormation template downloads Former2 web codes from [Ian Mckay](https://git
 Former2 is under active development. To download latest codes, login to EC2 instance and run `/home/ec2-user/update-former2` script. 
 
 ## About DCV web console
-[DCV](https://aws.amazon.com/hpc/dcv/) supports [file transfer](https://docs.aws.amazon.com/dcv/latest/userguide/using-transfer-web.html). Usage indicates acceptance of [DCV EULA](https://www.nice-dcv.com/eula.html).
+[DCV](https://aws.amazon.com/hpc/dcv/) supports [file transfer](https://docs.aws.amazon.com/dcv/latest/userguide/using-transfer-web.html). 
+[Native clients](https://docs.aws.amazon.com/dcv/latest/userguide/client-features.html) can be downloaded from [Amazon DCV site](https://download.nice-dcv.com/)
 
 ![file transfer](https://docs.aws.amazon.com/images/dcv/latest/userguide/images/web-storage.png)
 
-Native clients can be downloaded from https://download.nice-dcv.com/
+Usage indicates acceptance of [DCV EULA](https://www.amazondcv.com/eula.html).
 
 
 ## Clean Up
