@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: Former2 (https://github.com/aws-samples/ec2-former2) (uksb-1nfhpgkj2i) (tag:AL2)
+Description: Former2 (https://github.com/aws-samples/ec2-former2) (uksb-1nfhpgkj2i) (tag:AL2023)
 Transform: "AWS::LanguageExtensions"
 
 Metadata:
@@ -77,14 +77,14 @@ Parameters:
   ec2Name:
     Description: EC2 instance name
     Type: String
-    Default: AL2 with Former2
+    Default: AL2023 with Former2
   processorArchitecture:
     Type: String
     Description: Processor architecture
     AllowedValues:
-      - Amazon Linux 2 (arm64)
-      - Amazon Linux 2 (x86_64)
-    Default: Amazon Linux 2 (arm64)
+      - Amazon Linux 2023 (arm64)
+      - Amazon Linux 2023 (x86_64)
+    Default: Amazon Linux 2023 (arm64)
   instanceType:
     Type: String
     Description: https://console.aws.amazon.com/ec2/#InstanceTypes
@@ -144,7 +144,7 @@ Parameters:
     Default: gp3
 
 Conditions:
-  useARM64: !Equals [!Ref processorArchitecture, "Amazon Linux 2 (arm64)"]
+  useARM64: !Equals [!Ref processorArchitecture, "Amazon Linux 2023 (arm64)"]
   useElasticIP: !Equals [!Ref assignStaticIP, "Yes"]
   displayPublicIP: !Equals [!Ref displayPublicIP, "Yes"]
   hasEIC:
@@ -463,26 +463,13 @@ Resources:
               content: |
                 #!/bin/bash
                 cd /tmp
-                sudo rm -f /tmp/nice-dcv-amzn2-$(arch).tgz
-                wget https://d1uj6qtbmh3dt5.cloudfront.net/nice-dcv-amzn2-$(arch).tgz
-                tar -xvzf nice-dcv-amzn2-$(arch).tgz && cd nice-dcv-*-amzn2-$(arch)
-                sudo yum install -y ./nice-dcv-server-*.rpm
-                sudo yum install -y ./nice-dcv-web-viewer-*.rpm
-                sudo yum install -y ./nice-xdcv-*.rpm
+                sudo rm -f /tmp/nice-dcv-amzn2023-$(arch).tgz
+                wget https://d1uj6qtbmh3dt5.cloudfront.net/nice-dcv-amzn2023-$(arch).tgz
+                tar -xvzf nice-dcv-amzn2023-$(arch).tgz && cd nice-dcv-*-amzn2023-$(arch)
+                sudo dnf install -y ./nice-dcv-server-*.rpm
+                sudo dnf install -y ./nice-dcv-web-viewer-*.rpm
+                sudo dnf install -y ./nice-xdcv-*.rpm
                 sudo systemctl daemon-reload
-              mode: "000755"
-              owner: "ec2-user"
-              group: "ec2-user"
-            "/home/ec2-user/update-awscli":
-              content: |
-                #!/bin/bash
-                cd /tmp
-                sudo rm -f /tmp/awscliv2.zip
-                curl https://awscli.amazonaws.com/awscli-exe-linux-$(arch).zip -o awscliv2.zip
-                unzip -q -o awscliv2.zip
-                /usr/bin/aws --version
-                sudo ./aws/install --update -b /usr/bin
-                /usr/bin/aws --version
               mode: "000755"
               owner: "ec2-user"
               group: "ec2-user"
@@ -549,7 +536,14 @@ Resources:
 
                 /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ec2Instance --region ${AWS::Region}
 
-                yum update -q -y
+                dnf update -q -y
+
+                # https://docs.aws.amazon.com/linux/al2023/ug/managing-repos-os-updates.html#automatic-restart-services
+                dnf install -q -y smart-restart
+                touch /etc/smart-restart-conf.d/0-pre-restart
+                chmod +x /etc/smart-restart-conf.d/0-pre-restart
+                touch /etc/smart-restart-conf.d/0-post-restart
+                chmod +x /etc/smart-restart-conf.d/0-post-restart
 
                 #sysctl -w net.ipv6.conf.all.disable_ipv6=0
                 #sysctl -w net.ipv6.conf.default.disable_ipv6=0
@@ -569,35 +563,38 @@ Resources:
                 mkdir -p /tmp/cfn
                 cd /tmp/cfn
 
-                # EPEL: https://docs.fedoraproject.org/en-US/epel/
-                amazon-linux-extras install -y epel
-
                 # Update OS
-                yum clean all
-                yum update -q -y
+                dnf clean all
+                dnf update -q -y
                 sleep 10
-                pkill "^yum$"
+                pkill "^dnf$"
 
-                # yum-cron
-                yum install -q -y yum-cron
-                sed -i 's/apply_updates = no/apply_updates = yes/g' /etc/yum/yum-cron.conf
-                systemctl enable yum-cron
+                # dnf-automatic: https://dnf.readthedocs.io/en/latest/automatic.html
+                dnf install -q -y dnf-automatic
+                sed -i 's/apply_updates = no/apply_updates = yes/g' /etc/dnf/automatic.conf
+                sed -i 's/emit_via = stdio/emit_via = motd/g' /etc/dnf/automatic.conf
+                systemctl enable dnf-automatic-install.timer
+
+                # https://docs.aws.amazon.com/linux/al2023/ug/deterministic-upgrades-usage.html#deterministic-upgrade-override-persist
+                echo latest | sudo tee /etc/dnf/vars/releasever
+
+                # Enable crontab
+                dnf install -q -y cronie
+                systemctl enable --now crond
 
                 # USB and GPU driver DKMS
-                yum install -q -y dkms
+                dnf install -q -y dkms
                 systemctl enable dkms
 
                 # Kernel headers for GPU and USB remotization
-                yum install -q -y kernel-devel
-                yum install -q -y usbutils
+                dnf install -q -y kernel-devel-$(uname -r)
+                if (uname -r | grep -q ^6.12.); then
+                  dnf install -q -y kernel6.12-modules-extra
+                else
+                  dnf install -q -y kernel-modules-extra
+                fi
 
                 # AWS CLI: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
-                yum remove -q -y awscli
-                cd /tmp/cfn
-                # AWS CLI v2: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
-                curl -s https://awscli.amazonaws.com/awscli-exe-linux-$(arch).zip -o awscliv2.zip
-                unzip -q -o awscliv2.zip
-                ./aws/install -b /usr/bin
                 echo "export AWS_CLI_AUTO_PROMPT=on-partial" >> /home/ec2-user/.bashrc
 
                 rm -f ${!0}
@@ -617,37 +614,31 @@ Resources:
                 cd /tmp/cfn
 
                 # Update OS
-                yum update -q -y
+                dnf update -q -y
 
                 # DCV prereq: https://docs.aws.amazon.com/dcv/latest/adminguide/setting-up-installing-linux-prereq.html
-                yum install -q -y gdm gnome-session gnome-classic-session gnome-session-xsession
-                yum install -q -y xorg-x11-server-Xorg xorg-x11-fonts-Type1 xorg-x11-drivers 
-                yum install -q -y gnome-terminal gnu-free-fonts-common gnu-free-mono-fonts gnu-free-sans-fonts gnu-free-serif-fonts
-
-                # Microphone redirection: https://docs.aws.amazon.com/dcv/latest/adminguide/setting-up-installing-linux-server.html
-                yum install -q -y pulseaudio pulseaudio-utils
-                amazon-linux-extras install -y firefox
+                dnf groupinstall "Desktop" -y -q
 
                 # Disable the Wayland protocol: https://docs.aws.amazon.com/dcv/latest/adminguide/setting-up-installing-linux-prereq.html#linux-prereq-wayland
                 sed -i '/^\[daemon\]/a WaylandEnable=false' /etc/gdm/custom.conf
 
                 # DCV: https://docs.aws.amazon.com/dcv/latest/adminguide/setting-up-installing-linux-server.html
                 rpm --import https://d1uj6qtbmh3dt5.cloudfront.net/NICE-GPG-KEY
-                curl -s -L -O https://d1uj6qtbmh3dt5.cloudfront.net/nice-dcv-amzn2-$(arch).tgz
-                tar -xvzf nice-dcv-amzn2-$(arch).tgz && cd nice-dcv-*-amzn2-$(arch)
-                yum install -q -y ./nice-dcv-server-*.rpm
-                yum install -q -y ./nice-dcv-web-viewer-*.rpm
-                yum install -q -y ./nice-xdcv-*.rpm
+                curl -s -L -O https://d1uj6qtbmh3dt5.cloudfront.net/nice-dcv-amzn2023-$(arch).tgz
+                tar -xvzf nice-dcv-amzn2023-$(arch).tgz && cd nice-dcv-*-amzn2023-$(arch)
+                dnf install -q -y ./nice-dcv-server-*.rpm
+                dnf install -q -y ./nice-dcv-web-viewer-*.rpm
+                dnf install -q -y ./nice-xdcv-*.rpm
 
                 # Printer redirection: https://docs.aws.amazon.com/dcv/latest/adminguide/manage-printer.html
-                yum install -q -y cups
+                dnf install -q -y cups
                 GROUP=$(cat /etc/cups/cups-files.conf | grep -oP "SystemGroup\s\K\w+")
                 usermod -a -G $GROUP dcv
                 systemctl enable cups
 
                 # glxinfo : https://docs.aws.amazon.com/dcv/latest/adminguide/setting-up-installing-linux-prereq.html#linux-prereq-tools
-                yum install -q -y glx-utils
-                yum install -q -y vulkan clinfo
+                dnf install -q -y glx-utils
+                dnf install -q -y vulkan-tools
 
                 # QUIC: https://docs.aws.amazon.com/dcv/latest/adminguide/enable-quic.html
                 cp /etc/dcv/dcv.conf /etc/dcv/dcv.conf."`date +"%Y-%m-%d"`"
@@ -665,7 +656,7 @@ Resources:
 
                 # Firefox homepage
                 cd /usr/lib64/firefox/browser/defaults/preferences/
-                sed -i "s/https:\/\/amazonlinux.com/http:\/\/localhost/g" all-amazonlinux.js
+                sed -i "s/https:\/\/aws.amazon.com\/linux\/amazon-linux-2023/http:\/\/localhost/g" all-amazonlinux.js
                 sed -i "s/https:\/\/aws.amazon.com/http:\/\/localhost/g" all-amazonlinux.js
 
               mode: "000740"
@@ -679,8 +670,8 @@ Resources:
       ImageId:
         !If [
           useARM64,
-          "{{resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-arm64-gp2}}",
-          "{{resolve:ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-x86_64-gp2}}",
+          "{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.12-arm64}}",
+          "{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.12-x86_64}}",
         ]
       InstanceType: !Ref instanceType
       IamInstanceProfile: !Ref instanceProfile
@@ -706,9 +697,8 @@ Resources:
           #sysctl -w net.ipv6.conf.all.disable_ipv6=1
           #sysctl -w net.ipv6.conf.default.disable_ipv6=1
 
-          yum clean all
-          yum update -q -y
-          yum install -q -y deltarpm wget tmux unzip tar curl sed
+          dnf clean all
+          dnf install -q -y wget tmux unzip tar curl-minimal sed
 
           export CFN_INIT="/opt/aws/bin/cfn-init"
 
@@ -717,7 +707,7 @@ Resources:
           $CFN_INIT -v --stack ${AWS::StackName} --resource ec2Instance --region ${AWS::Region} -c dcv_install
 
           # Setup Former2 
-          yum install -q -y httpd git
+          dnf install -q -y httpd git
           cd /var/www/
           git clone https://github.com/iann0036/former2
           mv html html.bak

@@ -1,10 +1,10 @@
 ## ec2-former2
 
-[Former2](https://former2.com/) is a website that allows you to generate IaC ([Infrastructure as Code](https://docs.aws.amazon.com/whitepapers/latest/introduction-devops-aws/infrastructure-as-code.html)) templates (such as [CloudFormation](https://docs.aws.amazon.com/whitepapers/latest/introduction-devops-aws/aws-cloudformation.html), [CDK](https://docs.aws.amazon.com/whitepapers/latest/introduction-devops-aws/aws-cdk.html), Terraform, etc) from _existing_ AWS resources and is mentioned on AWS Open Source Blog ([Accelerate infrastructure as code development with open source Former2](https://aws.amazon.com/blogs/opensource/accelerate-infrastructure-as-code-development-with-open-source-former2/) and [How DNAnexus used the open source Former2 project to create infrastructure as code templates for their disaster recovery pipeline](https://aws.amazon.com/blogs/opensource/how-dnanexus-used-the-open-source-former2-project-to-create-infrastructure-as-code-templates-for-their-disaster-recovery-pipeline/)).
+[Former2](https://former2.com/) allows you to generate IaC ([Infrastructure as Code](https://docs.aws.amazon.com/whitepapers/latest/introduction-devops-aws/infrastructure-as-code.html))  (such as [CloudFormation](https://docs.aws.amazon.com/whitepapers/latest/introduction-devops-aws/aws-cloudformation.html), [CDK](https://docs.aws.amazon.com/whitepapers/latest/introduction-devops-aws/aws-cdk.html), Terraform, etc) from _existing_ AWS resources and is mentioned on AWS Open Source Blog ([Accelerate infrastructure as code development with open source Former2](https://aws.amazon.com/blogs/opensource/accelerate-infrastructure-as-code-development-with-open-source-former2/) and [How DNAnexus used the open source Former2 project to create infrastructure as code templates for their disaster recovery pipeline](https://aws.amazon.com/blogs/opensource/how-dnanexus-used-the-open-source-former2-project-to-create-infrastructure-as-code-templates-for-their-disaster-recovery-pipeline/)).
 
-Some users have challenges creating [access keys](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html) while others have security concerns about entering AWS security credentials on an external website, and would prefer a private web instance.  However, Former2 requires [browser helper extension](https://github.com/iann0036/former2-helper) that only works with websites that has domain names 127.0.0.1, localhost, former2.com and www.former2.com.
+Some users have challenges creating [access keys](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html) while others express security concerns about entering AWS security credentials on a public website, and would prefer a private web instance.  However, Former2 requires [browser helper extension](https://github.com/iann0036/former2-helper) that only works with websites that has domain names 127.0.0.1, localhost, former2.com and www.former2.com.
 
-This CloudFormation template provisions an EC2 instance hosting Former2 website in your AWS account. You can remote in to generate and download IaC templates with temporary security credentials.
+This CloudFormation template creates an EC2 instance hosting Former2 in your AWS account. You can connect to the instance with [Amazon DCV](https://aws.amazon.com/hpc/dcv/) remote display protocol to generate and download IaC templates using [temporary security credentials](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp.html).
 
 ## About CloudFormation templates
 EC2 instances must be provisioned in a subnet with IPv4 internet connectivity.
@@ -13,7 +13,7 @@ EC2 instances must be provisioned in a subnet with IPv4 internet connectivity.
 ## Getting started
 
 ###  Provision EC2 with CloudFormation
-Download the [CloudFormation template](AmazonLinux2-former2.yaml). Login to your [CloudFormation console](https://console.aws.amazon.com/cloudformation/home#/stacks/create/template). Choose **Create Stack**, **Upload a template file**, **Choose File**, select your .yaml file and choose **Next**. Enter a **Stack name** and specify parameters values.
+Download the CloudFormation template([AL2023](AmazonLinux2023-former2.yaml) or [AL2](AmazonLinux2-former2.yaml)). Login to your [CloudFormation console](https://console.aws.amazon.com/cloudformation/home#/stacks/create/template). Choose **Create Stack**, **Upload a template file**, **Choose File**, select your .yaml file and choose **Next**. Enter a **Stack name** and specify parameters values.
 
 
 EC2
@@ -52,15 +52,15 @@ Once provisioned, go to CloudFormation stack **Outputs** section and use the **V
   
   *Login as **ec2-user** and your configured password*
 
-   Launch `Firefox`, and install [Former 2 Helper for Mozilla Firefox](https://addons.mozilla.org/en-US/firefox/addon/former2-helper/)
+   Launch `Firefox` and navigate to Former2 site at `http://localhost`. Install [Former 2 Helper for Mozilla Firefox](https://addons.mozilla.org/en-US/firefox/addon/former2-helper/)
 
 ![ec2.png](./images/ec2.png)
 
 
 ### Credentials
-- `GetTokenCommand`: Copy entire string. In your DCV session, launch `Terminal`, and paste copied value in to retrieve temporary security credentials.
+- In your DCV session, launch `Terminal` and run the command `/home/ec2-user/get-iam-creds`. 
 
-   *Use these values to enter IAM credentials at http://localhost/#section-setup-credentials*
+   *Use these values to enter IAM credentials (Access Key ID, Secret Access Key, Session Token) at http://localhost/#section-setup-credentials*
 
 ![ec2.png](./images/credentials.png)
 
