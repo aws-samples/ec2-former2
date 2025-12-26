@@ -66,9 +66,19 @@ Once provisioned, go to CloudFormation stack **Outputs** section and use the **V
 
 Click `Continue to Parameters`. Select desired AWS Region from top right and click `Scan Account` 
 
+
+### Video: configure
+
+https://github.com/user-attachments/assets/2fc9153a-83e2-428e-b831-c9e92bfcc615
+
+
 ### Using Former2
 
 Refer to [Accelerate infrastructure as code development with open source Former2](https://aws.amazon.com/blogs/opensource/accelerate-infrastructure-as-code-development-with-open-source-former2/) blog post for usage guidance.
+
+### Video: generate CloudFormation IaC tempate (with Amazon DCV native client)
+
+https://github.com/user-attachments/assets/47687320-0ddf-4cc7-84d0-acad9496680b
 
 ## Attribution
 
