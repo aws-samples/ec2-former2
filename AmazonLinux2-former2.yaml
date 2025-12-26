@@ -23,6 +23,8 @@ Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
+          default: AL2 (Amazon Linux 2) EOL (End of Life) on 2026-06-30
+      - Label:
           default: EC2
         Parameters:
           - ec2Name
@@ -57,7 +59,7 @@ Metadata:
       vpcID:
         default: "VPC with outbound internet connectivity"
       subnetID:
-        default: "Subnet with outbound internet connectivity"
+        default: "Subnet in selected VPC with outbound internet connectivity"
       displayPublicIP:
         default: "EC2 in public subnet with public IP assigned?"
       assignStaticIP:
@@ -89,7 +91,7 @@ Parameters:
     Type: String
     Description: https://console.aws.amazon.com/ec2/#InstanceTypes
     AllowedPattern: "^[a-z\\-\\d\\.]+$"
-    Default: t4g.xlarge
+    Default: m6g.xlarge
 
   vpcID:
     Type: AWS::EC2::VPC::Id
@@ -134,7 +136,7 @@ Parameters:
     Description: https://docs.aws.amazon.com/ebs/latest/userguide/volume_constraints.html
     MinValue: 10
     MaxValue: 16384
-    Default: 10
+    Default: 15
   volumeType:
     Type: String
     Description: https://docs.aws.amazon.com/ebs/latest/userguide/ebs-volume-types.html
@@ -311,8 +313,8 @@ Resources:
                   NotIpAddress:
                     aws:SourceIp: 0.0.0.0/0
       ManagedPolicyArns:
-        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore"
-        - !Sub "arn:${AWS::Partition}:iam::aws:policy/ReadOnlyAccess"
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/ReadOnlyAccess
       Tags:
         - Key: StackName
           Value: !Ref AWS::StackName
@@ -550,15 +552,9 @@ Resources:
             "/opt/dcv-post-reboot.sh":
               content: !Sub |
                 #!/bin/bash
-                #sysctl -w net.ipv6.conf.all.disable_ipv6=1
-                #sysctl -w net.ipv6.conf.default.disable_ipv6=1
-
                 /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ec2Instance --region ${AWS::Region}
 
                 yum update -q -y
-
-                #sysctl -w net.ipv6.conf.all.disable_ipv6=0
-                #sysctl -w net.ipv6.conf.default.disable_ipv6=0
 
                 systemctl enable dcv-virtual-session && systemctl restart dcv-virtual-session
                 systemctl enable dcvserver && systemctl restart dcvserver
@@ -574,6 +570,11 @@ Resources:
                 #!/bin/bash
                 mkdir -p /tmp/cfn
                 cd /tmp/cfn
+
+                # Change password
+                PWD=$(cat /var/lib/cloud/data/instance-id)
+                USER=ec2-user
+                echo "$USER:$PWD" | chpasswd
 
                 # EPEL: https://docs.fedoraproject.org/en-US/epel/
                 amazon-linux-extras install -y epel
@@ -691,7 +692,7 @@ Resources:
       InstanceType: !Ref instanceType
       IamInstanceProfile: !Ref instanceProfile
       SubnetId: !Ref subnetID
-      Monitoring: true
+      Monitoring: false
       EbsOptimized: true
       SecurityGroupIds:
         - !Ref securityGroup
@@ -792,7 +793,7 @@ Outputs:
   EC2console:
     Description: EC2 console
     Value: !Sub
-      - "https://${AWS::Region}.${url}/ec2/home?region=${AWS::Region}#Instances:search=${ec2Instance}"
+      - "https://${AWS::Region}.${url}/ec2/home?region=${AWS::Region}#InstanceDetails:instanceId=${ec2Instance}"
       - url:
           !FindInMap [
             ConsoleUrl,
@@ -813,6 +814,10 @@ Outputs:
             url,
             DefaultValue: "console.aws.amazon.com",
           ]
+
+  EC2InstanceID:
+    Description: Instance ID
+    Value: !Ref ec2Instance
 
   EC2serialConsole:
     Description: EC2 Serial Console
@@ -842,7 +847,7 @@ Outputs:
         }
 
   SSMsessionManager:
-    Description: SSM Session Manager ("sudo passwd ec2-user" to change password)
+    Description: SSM Session Manager (" sudo passwd ec2-user " to change password)
     Value: !Sub
       - "https://${AWS::Region}.${url}/systems-manager/session-manager/${ec2Instance}"
       - url:
@@ -856,7 +861,7 @@ Outputs:
   DCVwebConsole:
     Description: DCV web browser client (login as ec2-user)
     Value: !Sub
-      - "https://${IpAddress}:8443"
+      - "https://${IpAddress}:8443/?username=ec2-user     ( dcv://ec2-user:@${IpAddress}:8443 )"
       - IpAddress:
           !If [
             displayPublicIP,
@@ -865,5 +870,5 @@ Outputs:
           ]
 
   GetIAMcreds:
-    Description: Command to retrieve IAM credentials for http://localhost/#section-setup-credentials
+    Description: Command to retrieve IAM credentials for https://former2.com/#section-setup-credentials
     Value: !Sub 'TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 30"` && curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/iam/security-credentials/${instanceIamRole}'
