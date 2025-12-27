@@ -69,8 +69,7 @@ Click `Continue to Parameters`. Select desired AWS Region from top right and cli
 
 ### Video: configure
 
-https://github.com/user-attachments/assets/2fc9153a-83e2-428e-b831-c9e92bfcc615
-
+https://github.com/user-attachments/assets/18e7682e-ab9f-4d1d-aa45-286c4120068a
 
 ### Using Former2
 
