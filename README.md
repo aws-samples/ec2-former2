@@ -2,7 +2,7 @@
 
 [Former2](https://former2.com/) is a website that allows you to generate IaC ([Infrastructure as Code](https://docs.aws.amazon.com/whitepapers/latest/introduction-devops-aws/infrastructure-as-code.html)) templates (such as [CloudFormation](https://docs.aws.amazon.com/whitepapers/latest/introduction-devops-aws/aws-cloudformation.html), [CDK](https://docs.aws.amazon.com/whitepapers/latest/introduction-devops-aws/aws-cdk.html), Terraform, etc) from _existing_ AWS resources and is mentioned on AWS Open Source Blog ([Accelerate infrastructure as code development with open source Former2](https://aws.amazon.com/blogs/opensource/accelerate-infrastructure-as-code-development-with-open-source-former2/) and [How DNAnexus used the open source Former2 project to create infrastructure as code templates for their disaster recovery pipeline](https://aws.amazon.com/blogs/opensource/how-dnanexus-used-the-open-source-former2-project-to-create-infrastructure-as-code-templates-for-their-disaster-recovery-pipeline/)).
 
-Some users have challenges creating [access keys](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html) while others have security concerns about entering AWS security credentials on an external website, and would prefer a private web instance.  However, Former2 requires [browser helper extension](https://github.com/iann0036/former2-helper) that only works with websites that has domain names 127.0.0.1, localhost, former2.com and www.former2.com.
+Some users have challenges creating [access keys](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html) while others have security concerns about entering AWS security credentials on an external website, and would prefer a private web instance.  However, Former2 requires [browser helper extension](https://github.com/iann0036/former2-helper) that only works with websites that has domain names 127.0.0.1, localhost, former2.com and <www.former2.com>.
 
 This CloudFormation template provisions an EC2 instance hosting Former2 website in your AWS account. You can remote in to generate and download IaC templates with temporary security credentials.
 
@@ -12,13 +12,13 @@ EC2 instance must be provisioned in a subnet with outbound IPv4 internet connect
 
 ## Getting started
 
-###  Provision EC2 with CloudFormation
+### Provision EC2 with CloudFormation
 
 Download the [CloudFormation template](AmazonLinux2-former2.yaml). Login to your [CloudFormation console](https://console.aws.amazon.com/cloudformation/home#/stacks/create/template). Choose **Create Stack**, **Upload a template file**, **Choose File**, select your .yaml file and choose **Next**. Enter a **Stack name** and specify parameters values.
 
 EC2
 
-- `ec2Name`: EC2 instance name 
+- `ec2Name`: EC2 instance name
 - `processorArchitecture`: Intel/AMD x86_64 or Graviton arm64. Default is `Graviton (arm64)`
 - `instanceType`: EC2 [instance types](https://aws.amazon.com/ec2/instance-types/). Do ensure type matches processor architecture.
 
@@ -47,10 +47,10 @@ Once provisioned, go to CloudFormation stack **Outputs** section and use the **V
 
 ### Connect
 
-- `EC2InstanceID`: EC2 Instance ID value
-- `DCVwebConsole`: open URL in a new browser tab, and connect to graphical desktop with Amazon DCV [web browser client](https://docs.aws.amazon.com/dcv/latest/userguide/using-connecting-browser-connect.html). Alternatively, you can use a DCV [native client](https://docs.aws.amazon.com/dcv/latest/userguide/client-features.html). Native clients are available from [Amazon DCV site](https://download.nice-dcv.com/)
-  
-  *Login as **ec2-user**. Default password is `EC2InstanceID` value*
+- `EC2instanceID`: EC2 Instance ID value
+- `DCVUrl`: connect to graphical desktop with Amazon DCV [web browser client](https://docs.aws.amazon.com/dcv/latest/userguide/using-connecting-browser-connect.html) or [native client](https://docs.aws.amazon.com/dcv/latest/userguide/client.html). Native clients can be downloaded from [https://www.amazondcv.com/](https://www.amazondcv.com/)
+
+  _Login as **ec2-user**. Default password is `EC2instanceID` value_
 
    Launch `Firefox`, and install [Former 2 Helper for Mozilla Firefox](https://addons.mozilla.org/en-US/firefox/addon/former2-helper/)
 
@@ -60,16 +60,15 @@ Once provisioned, go to CloudFormation stack **Outputs** section and use the **V
 
 - From terminal, run the script `/home/ec2-user/get-iam-creds.sh` to obtain [AWS temporary credentials](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html#using-temp-creds-sdk-ec2-instances)
 
-   *Use these values to enter IAM credentials at http://localhost/#section-setup-credentials*
+   _Use these values to enter IAM credentials at <http://localhost/#section-setup-credentials>_
 
 ![ec2.png](./images/credentials.png)
 
-Click `Continue to Parameters`. Select desired AWS Region from top right and click `Scan Account` 
-
+Click `Continue to Parameters`. Select desired AWS Region from top right and click `Scan Account`
 
 ### Video: configure
 
-https://github.com/user-attachments/assets/6bc2d0ee-3d7f-4700-ab2e-6e78744cf337
+<https://github.com/user-attachments/assets/6bc2d0ee-3d7f-4700-ab2e-6e78744cf337>
 
 ### Using Former2
 
@@ -77,7 +76,7 @@ Refer to [Accelerate infrastructure as code development with open source Former2
 
 ### Video: generate CloudFormation IaC tempate (with Amazon DCV native client)
 
-https://github.com/user-attachments/assets/47687320-0ddf-4cc7-84d0-acad9496680b
+<https://github.com/user-attachments/assets/47687320-0ddf-4cc7-84d0-acad9496680b>
 
 ## Attribution
 

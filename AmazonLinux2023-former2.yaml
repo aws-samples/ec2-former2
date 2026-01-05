@@ -704,10 +704,6 @@ Resources:
           mkdir -p /tmp/cfn
           cd /tmp/cfn
 
-          # disable IPv6 during setup
-          #sysctl -w net.ipv6.conf.all.disable_ipv6=1
-          #sysctl -w net.ipv6.conf.default.disable_ipv6=1
-
           dnf clean all
           dnf install -q -y wget tmux unzip tar curl-minimal sed
 
@@ -744,10 +740,6 @@ Resources:
           systemctl set-default multi-user.target
           systemctl daemon-reload
           systemctl enable dcv-post-reboot
-
-          # enable back IPv6
-          #sysctl -w net.ipv6.conf.all.disable_ipv6=0
-          #sysctl -w net.ipv6.conf.default.disable_ipv6=0
 
           sleep 1 && reboot
       Tags:
@@ -809,7 +801,7 @@ Outputs:
             DefaultValue: "console.aws.amazon.com",
           ]
 
-  EC2InstanceID:
+  EC2instanceID:
     Description: Instance ID
     Value: !Ref ec2Instance
 
@@ -852,8 +844,8 @@ Outputs:
             DefaultValue: "console.aws.amazon.com",
           ]
 
-  DCVwebConsole:
-    Description: DCV web browser client (login as ec2-user)
+  DCVUrl:
+    Description:  DCV URL (login as ec2-user)
     Value: !Sub
       - "https://${IpAddress}:8443/?username=ec2-user     ( dcv://ec2-user:@${IpAddress}:8443 )"
       - IpAddress:
